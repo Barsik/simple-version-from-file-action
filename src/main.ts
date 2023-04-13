@@ -1,6 +1,23 @@
 import * as core from '@actions/core'
 import * as exec from '@actions/exec'
 
+const getPrevVersion = async (filePath: string, fileContentRegex: string) => {
+  let grepOutput = ''
+  await exec.exec(
+    `git show HEAD~1:${filePath} | grep '${fileContentRegex}'`,
+    [],
+    {
+      listeners: {
+        stdout: data => {
+          grepOutput += data.toString()
+        }
+      }
+    }
+  )
+
+  return grepOutput
+}
+
 async function run(): Promise<void> {
   try {
     core.info(
@@ -15,22 +32,12 @@ async function run(): Promise<void> {
       [fileContentRegex, filePath]
     )
 
-    if (currentVersionResult.exitCode != 0) {
-      throw currentVersionResult.exitCode
-    }
+    const currentVersion: string =
+      currentVersionResult.exitCode === 0 ? currentVersionResult.stdout : ''
 
-    const currentVersion: string = currentVersionResult.stdout
     core.setOutput('version', currentVersion)
 
-    const prevVersionResult: exec.ExecOutput = await exec.getExecOutput(
-      `git show HEAD~1:${filePath} | grep '${fileContentRegex}'`,
-      []
-    )
-    if (prevVersionResult.exitCode != 0) {
-      throw prevVersionResult.exitCode
-    }
-
-    const prevVersion: string = prevVersionResult.stdout
+    const prevVersion: string = await getPrevVersion(filePath, fileContentRegex)
     core.setOutput('prev-version', prevVersion)
 
     core.setOutput('chnaged', prevVersion === currentVersion)
