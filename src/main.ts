@@ -1,16 +1,39 @@
 import * as core from '@actions/core'
-import {wait} from './wait'
+import * as exec from '@actions/exec'
 
 async function run(): Promise<void> {
   try {
-    const ms: string = core.getInput('milliseconds')
-    core.debug(`Waiting ${ms} milliseconds ...`) // debug is only output if you set the secret `ACTIONS_STEP_DEBUG` to true
+    core.info(
+      'Works only with "actions/checkout" and "fetch-depth" should be 0 to fetch all history'
+    )
 
-    core.debug(new Date().toTimeString())
-    await wait(parseInt(ms, 10))
-    core.debug(new Date().toTimeString())
+    const filePath: string = core.getInput('file-path')
+    const fileContentRegex: string = core.getInput('file-content-regex')
 
-    core.setOutput('time', new Date().toTimeString())
+    const currentVersionResult: exec.ExecOutput = await exec.getExecOutput(
+      'grep',
+      [fileContentRegex, filePath]
+    )
+
+    if (currentVersionResult.exitCode != 0) {
+      throw currentVersionResult.exitCode
+    }
+
+    const currentVersion: string = currentVersionResult.stdout
+    core.setOutput('version', currentVersion)
+
+    const prevVersionResult: exec.ExecOutput = await exec.getExecOutput(
+      `git show HEAD~1:${filePath} | grep '${fileContentRegex}'`,
+      []
+    )
+    if (prevVersionResult.exitCode != 0) {
+      throw prevVersionResult.exitCode
+    }
+
+    const prevVersion: string = prevVersionResult.stdout
+    core.setOutput('prev-version', prevVersion)
+
+    core.setOutput('chnaged', prevVersion === currentVersion)
   } catch (error) {
     if (error instanceof Error) core.setFailed(error.message)
   }
