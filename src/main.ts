@@ -2,20 +2,12 @@ import * as core from '@actions/core'
 import * as exec from '@actions/exec'
 
 const getPrevVersion = async (filePath: string, fileContentRegex: string) => {
-  let grepOutput = ''
-  await exec.exec(
-    `git show HEAD~1:${filePath} | grep '${fileContentRegex}'`,
-    [],
-    {
-      listeners: {
-        stdout: data => {
-          grepOutput += data.toString()
-        }
-      }
-    }
-  )
+  const prevVersionResult: exec.ExecOutput = await exec.getExecOutput('sh', [
+    '-c',
+    `git show HEAD~1:${filePath} | grep ${fileContentRegex}`
+  ])
 
-  return grepOutput
+  return prevVersionResult.exitCode === 0 ? prevVersionResult.stdout : ''
 }
 
 async function run(): Promise<void> {
