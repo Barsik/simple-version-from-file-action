@@ -1,0 +1,16 @@
+name: 'Simple version from file'
+description: ''
+inputs: 
+  file-path:
+    description: 'file-path'
+    required: true
+outputs:
+  chnaged:
+    description: 'chnaged'
+  version:
+    description: 'version'
+  prev-version:
+    description: 'prev-version'
+runs:
+  using: 'node16'
+  main: 'dist/index.js'
